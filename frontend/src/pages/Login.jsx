@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
 import './Login.css';
 
 function Login({ setUser }) {
@@ -9,6 +10,7 @@ function Login({ setUser }) {
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,9 +28,10 @@ function Login({ setUser }) {
         }
         localStorage.setItem('user', JSON.stringify(res.data.user));
         setUser(res.data.user);
+        showSuccess(`Welcome back, ${res.data.user.name}!`);
         navigate('/dashboard');
       } else {
-        alert('Registration successful! Please login.');
+        showSuccess('Registration successful! Please login.');
         setIsLogin(true);
         setFormData({ name: '', email: '', password: '' });
       }

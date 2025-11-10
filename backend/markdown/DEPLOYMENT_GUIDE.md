@@ -1,15 +1,16 @@
 # 🚀 Deployment Guide - Unified Learning Lab
 
 ## Quick Overview
+
 Your application is **100% deployable**! Here are your deployment options:
 
 ### ✅ Recommended Hosting Platforms
 
-| Component | Platform | Free Tier | Best For |
-|-----------|----------|-----------|----------|
-| **Backend** | Render / Railway | ✅ Yes | Node.js apps with MongoDB |
-| **Frontend** | Vercel / Netlify | ✅ Yes | React applications |
-| **Database** | MongoDB Atlas | ✅ Yes | Already configured! |
+| Component    | Platform         | Free Tier | Best For                  |
+| ------------ | ---------------- | --------- | ------------------------- |
+| **Backend**  | Render / Railway | ✅ Yes    | Node.js apps with MongoDB |
+| **Frontend** | Vercel / Netlify | ✅ Yes    | React applications        |
+| **Database** | MongoDB Atlas    | ✅ Yes    | Already configured!       |
 
 ---
 
@@ -24,6 +25,7 @@ Your application is **100% deployable**! Here are your deployment options:
 3. **Connect your GitHub repository:** `ayushtri6269/Unified-Learning-Lab`
 
 4. **Configure the service:**
+
    ```
    Name: learning-lab-backend
    Region: Choose closest to you
@@ -35,6 +37,7 @@ Your application is **100% deployable**! Here are your deployment options:
    ```
 
 5. **Add Environment Variables** (click "Advanced" → "Add Environment Variable"):
+
    ```
    NODE_ENV=production
    PORT=5001
@@ -57,6 +60,7 @@ Your application is **100% deployable**! Here are your deployment options:
 3. **Import your repository:** `ayushtri6269/Unified-Learning-Lab`
 
 4. **Configure the project:**
+
    ```
    Framework Preset: Create React App
    Root Directory: frontend
@@ -65,6 +69,7 @@ Your application is **100% deployable**! Here are your deployment options:
    ```
 
 5. **Add Environment Variable:**
+
    ```
    REACT_APP_API_URL=https://your-backend-url.onrender.com/api
    ```
@@ -84,6 +89,7 @@ Your application is **100% deployable**! Here are your deployment options:
 3. **Select your repository** and click "Deploy Now"
 
 4. **Configure Backend Service:**
+
    - Click on the service → Settings
    - Root Directory: `backend`
    - Start Command: `npm start`
@@ -98,6 +104,7 @@ Your application is **100% deployable**! Here are your deployment options:
 1. **In same project, click "New Service" → "GitHub Repo"**
 
 2. **Configure Frontend Service:**
+
    - Root Directory: `frontend`
    - Build Command: `npm run build`
    - Start Command: `npx serve -s build -p $PORT`
@@ -120,6 +127,7 @@ Your application is **100% deployable**! Here are your deployment options:
 3. **Connect GitHub and select repository**
 
 4. **Configure build settings:**
+
    ```
    Base directory: frontend
    Build command: npm run build
@@ -165,6 +173,7 @@ CORS_ORIGIN=https://your-frontend-domain.com
 ### 2. Frontend: Update API URL
 
 Create `frontend/.env.production`:
+
 ```env
 REACT_APP_API_URL=https://your-backend-domain.com/api
 ```
@@ -174,18 +183,24 @@ REACT_APP_API_URL=https://your-backend-domain.com/api
 ## 🐛 Common Issues & Solutions
 
 ### Issue 1: CORS Errors
+
 **Solution:** Add your frontend URL to CORS_ORIGIN in backend .env
 
 ### Issue 2: API Not Found
+
 **Solution:** Ensure REACT_APP_API_URL is correctly set and starts with `https://`
 
 ### Issue 3: Database Connection Failed
-**Solution:** 
+
+**Solution:**
+
 - Check MongoDB Atlas IP Whitelist (add `0.0.0.0/0` for all IPs)
 - Verify MONGODB_URI is correct
 
 ### Issue 4: Build Fails
-**Solution:** 
+
+**Solution:**
+
 - Run `npm install` in both frontend and backend
 - Check Node.js version (use v18 or v20)
 
@@ -194,13 +209,16 @@ REACT_APP_API_URL=https://your-backend-domain.com/api
 ## 🎉 Post-Deployment
 
 ### 1. Create Admin User
+
 Run this command on your deployed backend:
+
 ```bash
 # SSH into your backend server or use Railway/Render console
 node createAdmin.js
 ```
 
 ### 2. Test Everything
+
 - [ ] User registration works
 - [ ] Login works
 - [ ] Admin panel accessible
@@ -209,6 +227,7 @@ node createAdmin.js
 - [ ] AI chatbot responds
 
 ### 3. Monitor Your App
+
 - **Render:** Check logs in dashboard
 - **Vercel:** Check deployment logs
 - **Railway:** Use built-in logging
@@ -218,6 +237,7 @@ node createAdmin.js
 ## 💰 Cost Estimate
 
 ### Free Tier Limits
+
 - **Render:** 750 hours/month (enough for 1 app)
 - **Vercel:** 100 GB bandwidth/month
 - **Railway:** $5 free credit/month
@@ -240,6 +260,7 @@ node createAdmin.js
 ## 📱 Mobile Responsiveness
 
 Your app is already mobile-responsive! Test on:
+
 - Chrome DevTools (F12 → Toggle Device Toolbar)
 - Real mobile devices
 - https://responsively.app/
@@ -288,6 +309,7 @@ npx serve -s build
 ## ✅ Your App is Ready!
 
 Your codebase is **production-ready** with:
+
 - ✅ Secure authentication (JWT + bcrypt)
 - ✅ MongoDB Atlas database
 - ✅ Role-based access control

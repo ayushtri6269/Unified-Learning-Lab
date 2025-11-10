@@ -1,5 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import './CNNVisualizer.css';
+
+const PRESET_CONFIGS = {
+  edgeDetection: {
+    label: 'Edge Detector',
+    description: 'Highlights horizontal gradients using a Sobel-style kernel.',
+    image: [
+      [10, 10, 10, 10, 10],
+      [10, 60, 60, 60, 10],
+      [10, 60, 120, 60, 10],
+      [10, 60, 60, 60, 10],
+      [10, 10, 10, 10, 10]
+    ],
+    filter: [
+      [1, 0, -1],
+      [2, 0, -2],
+      [1, 0, -1]
+    ],
+    stride: 1,
+    padding: 0
+  },
+  sharpen: {
+    label: 'Sharpen',
+    description: 'Accentuates edges by subtracting the surrounding blur.',
+    image: [
+      [3, 3, 3, 3, 3],
+      [3, 5, 5, 5, 3],
+      [3, 5, 9, 5, 3],
+      [3, 5, 5, 5, 3],
+      [3, 3, 3, 3, 3]
+    ],
+    filter: [
+      [0, -1, 0],
+      [-1, 5, -1],
+      [0, -1, 0]
+    ],
+    stride: 1,
+    padding: 0
+  },
+  blur: {
+    label: 'Gaussian Blur',
+    description: 'Softens the image with a normalized Gaussian kernel.',
+    image: [
+      [25, 40, 55, 40, 25],
+      [40, 80, 120, 80, 40],
+      [55, 120, 180, 120, 55],
+      [40, 80, 120, 80, 40],
+      [25, 40, 55, 40, 25]
+    ],
+    filter: [
+      [1, 2, 1],
+      [2, 4, 2],
+      [1, 2, 1]
+    ].map((row) => row.map((value) => Number((value / 16).toFixed(2)))),
+    stride: 1,
+    padding: 1
+  }
+};
 
 function CNNVisualizer() {
   const [mode, setMode] = useState('2d'); // '2d' or '3d'
@@ -20,6 +77,9 @@ function CNNVisualizer() {
   const [animationStep, setAnimationStep] = useState(0);
   const [convolutionSteps, setConvolutionSteps] = useState([]);
   const [outputMatrix, setOutputMatrix] = useState([]);
+  const [animationSpeed, setAnimationSpeed] = useState(1500);
+  const [selectedPreset, setSelectedPreset] = useState(null);
+  const presetEntries = useMemo(() => Object.entries(PRESET_CONFIGS), []);
 
   // 3D State
   const [depth, setDepth] = useState(3);
@@ -36,6 +96,10 @@ function CNNVisualizer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [steps3D, setSteps3D] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const [animationSpeed3D, setAnimationSpeed3D] = useState(1000);
+
+  const animationIntervalRef = useRef(null);
+  const animation3DIntervalRef = useRef(null);
 
   // Initialize 3D tensors when switching to 3D mode
   useEffect(() => {
@@ -45,6 +109,7 @@ function CNNVisualizer() {
   }, [mode]);
 
   const initializeTensors = () => {
+    reset3DComputation();
     const input = Array(depth).fill(0).map(() =>
       Array(height).fill(0).map(() => Array(width).fill(0))
     );
@@ -55,23 +120,182 @@ function CNNVisualizer() {
     setKernel3D(kernel);
   };
 
+  const clear2DAnimationTimer = useCallback(() => {
+    if (animationIntervalRef.current) {
+      clearInterval(animationIntervalRef.current);
+      animationIntervalRef.current = null;
+    }
+  }, []);
+
+  const clear3DAnimationTimer = useCallback(() => {
+    if (animation3DIntervalRef.current) {
+      clearInterval(animation3DIntervalRef.current);
+      animation3DIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => {
+    clear2DAnimationTimer();
+    clear3DAnimationTimer();
+  }, [clear2DAnimationTimer, clear3DAnimationTimer]);
+
+  const reset2DComputation = useCallback(() => {
+    clear2DAnimationTimer();
+    setConvolutionSteps([]);
+    setOutput('');
+    setOutputMatrix([]);
+    setAnimationStep(0);
+    setIsAnimating(false);
+  }, [clear2DAnimationTimer]);
+
+  const reset3DComputation = useCallback(() => {
+    clear3DAnimationTimer();
+    setSteps3D([]);
+    setOutput3D([]);
+    setCurrentStep(0);
+    setIsPlaying(false);
+  }, [clear3DAnimationTimer]);
+
+  const start2DAnimationTimer = useCallback((resetPosition = false, speedOverride) => {
+    if (convolutionSteps.length === 0) return;
+    clear2DAnimationTimer();
+    if (resetPosition) {
+      setAnimationStep(0);
+    }
+    const intervalSpeed = speedOverride ?? animationSpeed;
+    animationIntervalRef.current = setInterval(() => {
+      setAnimationStep((prev) => {
+        if (prev >= convolutionSteps.length - 1) {
+          clear2DAnimationTimer();
+          setIsAnimating(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, Math.max(200, intervalSpeed));
+  }, [animationSpeed, clear2DAnimationTimer, convolutionSteps.length]);
+
+  const start3DAnimationTimer = useCallback((resetPosition = false, speedOverride) => {
+    if (steps3D.length === 0) return;
+    clear3DAnimationTimer();
+    if (resetPosition) {
+      setCurrentStep(0);
+    }
+    const intervalSpeed = speedOverride ?? animationSpeed3D;
+    animation3DIntervalRef.current = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev >= steps3D.length - 1) {
+          clear3DAnimationTimer();
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, Math.max(200, intervalSpeed));
+  }, [animationSpeed3D, clear3DAnimationTimer, steps3D.length]);
+
+  const applyPreset = useCallback((presetKey) => {
+    const preset = PRESET_CONFIGS[presetKey];
+    if (!preset) return;
+
+    reset2DComputation();
+
+    const image = preset.image.map((row) => row.slice());
+    const filter = preset.filter.map((row) => row.slice());
+
+    setImgRows(image.length);
+    setImgCols(image[0].length);
+    setFilterRows(filter.length);
+    setFilterCols(filter[0].length);
+    setStride(preset.stride ?? 1);
+    setPadding(preset.padding ?? 0);
+    setImageMatrix(image);
+    setFilterMatrix(filter);
+    setSelectedPreset(presetKey);
+  }, [reset2DComputation]);
+
+  const generateRandomMatrix = (rows, cols, min = -3, max = 6) => (
+    Array.from({ length: rows }, () => (
+      Array.from({ length: cols }, () => Number((Math.random() * (max - min) + min).toFixed(2)))
+    ))
+  );
+
+  const randomizeMatrices = useCallback(() => {
+    reset2DComputation();
+    const newImage = generateRandomMatrix(imgRows, imgCols, 0, 9);
+    const newFilter = generateRandomMatrix(filterRows, filterCols, -2, 2);
+    setImageMatrix(newImage);
+    setFilterMatrix(newFilter);
+    setSelectedPreset(null);
+  }, [filterCols, filterRows, imgCols, imgRows, reset2DComputation]);
+
+  const handleAnimationSpeedChange = (value) => {
+    const nextSpeed = Number(value);
+    if (Number.isNaN(nextSpeed)) return;
+    setAnimationSpeed(nextSpeed);
+    if (isAnimating) {
+      start2DAnimationTimer(false, nextSpeed);
+    }
+  };
+
+  const handleAnimationSpeedChange3D = (value) => {
+    const nextSpeed = Number(value);
+    if (Number.isNaN(nextSpeed)) return;
+    setAnimationSpeed3D(nextSpeed);
+    if (isPlaying) {
+      start3DAnimationTimer(false, nextSpeed);
+    }
+  };
+
+  const outputSize = useMemo(() => {
+    const paddedRows = imgRows + 2 * padding;
+    const paddedCols = imgCols + 2 * padding;
+    const rows = Math.floor((paddedRows - filterRows) / stride) + 1;
+    const cols = Math.floor((paddedCols - filterCols) / stride) + 1;
+    if (!Number.isFinite(rows) || !Number.isFinite(cols) || rows <= 0 || cols <= 0) {
+      return null;
+    }
+    return { rows, cols };
+  }, [filterCols, filterRows, imgCols, imgRows, padding, stride]);
+
+  const outputSize3D = useMemo(() => {
+    const paddedH = height + 2 * padding3D;
+    const paddedW = width + 2 * padding3D;
+    const rows = Math.floor((paddedH - kHeight) / stride3D) + 1;
+    const cols = Math.floor((paddedW - kWidth) / stride3D) + 1;
+    if (!Number.isFinite(rows) || !Number.isFinite(cols) || rows <= 0 || cols <= 0) {
+      return null;
+    }
+    return { rows, cols };
+  }, [height, kHeight, kWidth, padding3D, stride3D, width]);
+
   // 2D Functions
   const createMatrix = (rows, cols, type) => {
     const matrix = Array(rows).fill(0).map(() => Array(cols).fill(0));
+    reset2DComputation();
+    setSelectedPreset(null);
     if (type === 'image') setImageMatrix(matrix);
     else setFilterMatrix(matrix);
   };
 
   const updateCell = (type, i, j, value) => {
+    const parsed = parseFloat(value);
+    if (Number.isNaN(parsed)) {
+      return;
+    }
     if (type === 'image') {
-      const newMatrix = [...imageMatrix];
-      newMatrix[i][j] = parseFloat(value) || 0;
+      const newMatrix = imageMatrix.map((row, rowIdx) => (
+        rowIdx === i ? row.map((cell, colIdx) => (colIdx === j ? parsed : cell)) : row.slice()
+      ));
       setImageMatrix(newMatrix);
     } else {
-      const newMatrix = [...filterMatrix];
-      newMatrix[i][j] = parseFloat(value) || 0;
+      const newMatrix = filterMatrix.map((row, rowIdx) => (
+        rowIdx === i ? row.map((cell, colIdx) => (colIdx === j ? parsed : cell)) : row.slice()
+      ));
       setFilterMatrix(newMatrix);
     }
+    reset2DComputation();
+    setSelectedPreset(null);
   };
 
   const computeConvolution = () => {
@@ -79,6 +303,8 @@ function CNNVisualizer() {
       alert('Please create both matrices first!');
       return;
     }
+
+    reset2DComputation();
 
     const padded = padMatrix(imageMatrix, padding);
     const outRows = Math.floor((padded.length - filterRows) / stride) + 1;
@@ -136,25 +362,16 @@ function CNNVisualizer() {
     }
     setIsAnimating(true);
     setAnimationStep(0);
-
-    const interval = setInterval(() => {
-      setAnimationStep(prev => {
-        if (prev >= convolutionSteps.length - 1) {
-          clearInterval(interval);
-          setIsAnimating(false);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1500);
+    start2DAnimationTimer(true);
   };
 
-  const stopAnimation = () => {
+  const stopAnimation = useCallback(() => {
+    clear2DAnimationTimer();
     setIsAnimating(false);
-  };
+  }, [clear2DAnimationTimer]);
 
-  const padMatrix = (matrix, pad) => {
-    if (!matrix || matrix.length === 0 || !matrix[0]) return matrix;
+  const padMatrix = useCallback((matrix, pad) => {
+    if (!matrix || matrix.length === 0 || !matrix[0] || pad === 0) return matrix;
     const rows = matrix.length;
     const cols = matrix[0].length;
     const padded = Array(rows + 2 * pad).fill(0).map(() => Array(cols + 2 * pad).fill(0));
@@ -164,19 +381,22 @@ function CNNVisualizer() {
       }
     }
     return padded;
-  };
+  }, []);
 
   // 3D Functions
   const updateCell3D = (type, d, h, w, value) => {
+    const parsed = parseFloat(value);
+    if (Number.isNaN(parsed)) return;
     if (type === 'input') {
-      const newTensor = JSON.parse(JSON.stringify(input3D));
-      newTensor[d][h][w] = parseFloat(value) || 0;
+      const newTensor = input3D.map((channel) => channel.map((row) => row.slice()));
+      newTensor[d][h][w] = parsed;
       setInput3D(newTensor);
     } else {
-      const newTensor = JSON.parse(JSON.stringify(kernel3D));
-      newTensor[d][h][w] = parseFloat(value) || 0;
+      const newTensor = kernel3D.map((channel) => channel.map((row) => row.slice()));
+      newTensor[d][h][w] = parsed;
       setKernel3D(newTensor);
     }
+    reset3DComputation();
   };
 
   const padTensor3D = (tensor, pad) => {
@@ -205,6 +425,8 @@ function CNNVisualizer() {
       alert(`Kernel depth (${kDepth}) must match input depth (${depth})!`);
       return;
     }
+
+    reset3DComputation();
 
     const padded = padTensor3D(input3D, padding3D);
     const [D, H, W] = [padded.length, padded[0].length, padded[0][0].length];
@@ -276,6 +498,7 @@ function CNNVisualizer() {
     setKernel3D(edgeKernel);
     setStride3D(1);
     setPadding3D(0);
+    reset3DComputation();
   };
 
   const playAnimation = () => {
@@ -285,18 +508,21 @@ function CNNVisualizer() {
     }
     setIsPlaying(true);
     setCurrentStep(0);
-
-    const interval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev >= steps3D.length - 1) {
-          clearInterval(interval);
-          setIsPlaying(false);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 1000);
+    start3DAnimationTimer(true);
   };
+
+  const stop3DAnimation = useCallback(() => {
+    clear3DAnimationTimer();
+    setIsPlaying(false);
+  }, [clear3DAnimationTimer]);
+
+  useEffect(() => {
+    if (mode === '2d') {
+      stop3DAnimation();
+    } else {
+      stopAnimation();
+    }
+  }, [mode, stop3DAnimation, stopAnimation]);
 
   const getChannelColor = (channelIdx) => {
     const colors = ['#ff4444', '#44ff44', '#4444ff'];
@@ -347,21 +573,135 @@ function CNNVisualizer() {
             <h3>⚙️ Configuration</h3>
             <div>
               <label>Image Matrix: </label>
-              <input type="number" value={imgRows} onChange={(e) => setImgRows(+e.target.value)} min="2" max="10" /> ×
-              <input type="number" value={imgCols} onChange={(e) => setImgCols(+e.target.value)} min="2" max="10" />
+              <input
+                type="number"
+                value={imgRows}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(10, parsed));
+                  setImgRows(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="2"
+                max="10"
+              /> ×
+              <input
+                type="number"
+                value={imgCols}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(10, parsed));
+                  setImgCols(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="2"
+                max="10"
+              />
               <button onClick={() => createMatrix(imgRows, imgCols, 'image')} className="btn">Create Image</button>
             </div>
             <div>
               <label>Filter Matrix: </label>
-              <input type="number" value={filterRows} onChange={(e) => setFilterRows(+e.target.value)} min="2" max="5" /> ×
-              <input type="number" value={filterCols} onChange={(e) => setFilterCols(+e.target.value)} min="2" max="5" />
+              <input
+                type="number"
+                value={filterRows}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(5, parsed));
+                  setFilterRows(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="2"
+                max="5"
+              /> ×
+              <input
+                type="number"
+                value={filterCols}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(5, parsed));
+                  setFilterCols(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="2"
+                max="5"
+              />
               <button onClick={() => createMatrix(filterRows, filterCols, 'filter')} className="btn">Create Filter</button>
+            </div>
+            <div className="preset-row">
+              <label>Quick Presets:</label>
+              <div className="preset-buttons">
+                {presetEntries.map(([key, preset]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`preset-button ${selectedPreset === key ? 'active' : ''}`}
+                    onClick={() => applyPreset(key)}
+                    title={preset.description}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="preset-button outline"
+                  onClick={randomizeMatrices}
+                >
+                  🔀 Randomize
+                </button>
+              </div>
             </div>
             <div>
               <label>Stride: </label>
-              <input type="number" value={stride} onChange={(e) => setStride(+e.target.value)} min="1" max="3" />
+              <input
+                type="number"
+                value={stride}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(1, Math.min(3, parsed));
+                  setStride(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="1"
+                max="3"
+              />
               <label>Padding: </label>
-              <input type="number" value={padding} onChange={(e) => setPadding(+e.target.value)} min="0" max="2" />
+              <input
+                type="number"
+                value={padding}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(0, Math.min(2, parsed));
+                  setPadding(next);
+                  setSelectedPreset(null);
+                  reset2DComputation();
+                }}
+                min="0"
+                max="2"
+              />
+            </div>
+
+            <div className="speed-control">
+              <label>Animation Speed:</label>
+              <input
+                type="range"
+                min="300"
+                max="2500"
+                step="100"
+                value={animationSpeed}
+                onChange={(e) => handleAnimationSpeedChange(e.target.value)}
+              />
+              <span className="speed-value">{(animationSpeed / 1000).toFixed(1)}s/step</span>
             </div>
 
             <button
@@ -371,6 +711,18 @@ function CNNVisualizer() {
             >
               {imageMatrix.length === 0 || filterMatrix.length === 0 ? '⚠️ Create Matrices First' : '▶️ Compute Convolution'}
             </button>
+
+            {imageMatrix.length > 0 && filterMatrix.length > 0 && (
+              outputSize ? (
+                <div className="dimension-hint">
+                  Output Shape: {outputSize.rows} × {outputSize.cols}
+                </div>
+              ) : (
+                <div className="dimension-hint warning">
+                  Current stride/padding produce invalid output dimensions.
+                </div>
+              )
+            )}
 
             {convolutionSteps.length > 0 && (
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -517,7 +869,11 @@ function CNNVisualizer() {
               {convolutionSteps.length > 0 && (
                 <div className="step-controls">
                   <button
-                    onClick={() => setAnimationStep(Math.max(0, animationStep - 1))}
+                    onClick={() => {
+                      clear2DAnimationTimer();
+                      setIsAnimating(false);
+                      setAnimationStep(Math.max(0, animationStep - 1));
+                    }}
                     disabled={animationStep === 0 || isAnimating}
                     className="btn btn-sm"
                   >
@@ -527,7 +883,11 @@ function CNNVisualizer() {
                     Step {animationStep + 1} / {convolutionSteps.length}
                   </span>
                   <button
-                    onClick={() => setAnimationStep(Math.min(convolutionSteps.length - 1, animationStep + 1))}
+                    onClick={() => {
+                      clear2DAnimationTimer();
+                      setIsAnimating(false);
+                      setAnimationStep(Math.min(convolutionSteps.length - 1, animationStep + 1));
+                    }}
                     disabled={animationStep === convolutionSteps.length - 1 || isAnimating}
                     className="btn btn-sm"
                   >
@@ -594,23 +954,133 @@ function CNNVisualizer() {
             <h3>⚙️ 3D Configuration</h3>
             <div>
               <label>Input Tensor (D×H×W): </label>
-              <input type="number" value={depth} onChange={(e) => { setDepth(Math.max(1, +e.target.value)); setKDepth(Math.max(1, +e.target.value)); }} min="1" max="5" /> ×
-              <input type="number" value={height} onChange={(e) => setHeight(Math.max(2, +e.target.value))} min="2" max="8" /> ×
-              <input type="number" value={width} onChange={(e) => setWidth(Math.max(2, +e.target.value))} min="2" max="8" />
+              <input
+                type="number"
+                value={depth}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(1, Math.min(5, parsed));
+                  setDepth(next);
+                  setKDepth(next);
+                  reset3DComputation();
+                }}
+                min="1"
+                max="5"
+              /> ×
+              <input
+                type="number"
+                value={height}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(8, parsed));
+                  setHeight(next);
+                  reset3DComputation();
+                }}
+                min="2"
+                max="8"
+              /> ×
+              <input
+                type="number"
+                value={width}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(8, parsed));
+                  setWidth(next);
+                  reset3DComputation();
+                }}
+                min="2"
+                max="8"
+              />
               <button onClick={initializeTensors} className="btn">Initialize Tensors</button>
             </div>
             <div>
               <label>Kernel (KH×KW): </label>
-              <input type="number" value={kHeight} onChange={(e) => setKHeight(Math.max(2, +e.target.value))} min="2" max="5" /> ×
-              <input type="number" value={kWidth} onChange={(e) => setKWidth(Math.max(2, +e.target.value))} min="2" max="5" />
+              <input
+                type="number"
+                value={kHeight}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(5, parsed));
+                  setKHeight(next);
+                  reset3DComputation();
+                }}
+                min="2"
+                max="5"
+              /> ×
+              <input
+                type="number"
+                value={kWidth}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(2, Math.min(5, parsed));
+                  setKWidth(next);
+                  reset3DComputation();
+                }}
+                min="2"
+                max="5"
+              />
               <button onClick={initializeTensors} className="btn">Update Kernel</button>
             </div>
             <div>
               <label>Stride: </label>
-              <input type="number" value={stride3D} onChange={(e) => setStride3D(+e.target.value)} min="1" max="3" />
+              <input
+                type="number"
+                value={stride3D}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(1, Math.min(3, parsed));
+                  setStride3D(next);
+                  reset3DComputation();
+                }}
+                min="1"
+                max="3"
+              />
               <label>Padding: </label>
-              <input type="number" value={padding3D} onChange={(e) => setPadding3D(+e.target.value)} min="0" max="2" />
+              <input
+                type="number"
+                value={padding3D}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value);
+                  if (Number.isNaN(parsed)) return;
+                  const next = Math.max(0, Math.min(2, parsed));
+                  setPadding3D(next);
+                  reset3DComputation();
+                }}
+                min="0"
+                max="2"
+              />
             </div>
+
+            <div className="speed-control">
+              <label>Animation Speed:</label>
+              <input
+                type="range"
+                min="300"
+                max="2500"
+                step="100"
+                value={animationSpeed3D}
+                onChange={(e) => handleAnimationSpeedChange3D(e.target.value)}
+              />
+              <span className="speed-value">{(animationSpeed3D / 1000).toFixed(1)}s/step</span>
+            </div>
+
+            {input3D.length > 0 && kernel3D.length > 0 && (
+              outputSize3D ? (
+                <div className="dimension-hint">
+                  Output Shape: {outputSize3D.rows} × {outputSize3D.cols}
+                </div>
+              ) : (
+                <div className="dimension-hint warning">
+                  Adjust stride/padding or kernel size to obtain valid output dimensions.
+                </div>
+              )
+            )}
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
               <button onClick={loadRGBExample} className="btn btn-secondary">
@@ -620,9 +1090,15 @@ function CNNVisualizer() {
                 ▶️ Compute 3D Convolution
               </button>
               {steps3D.length > 0 && (
-                <button onClick={playAnimation} className="btn" disabled={isPlaying}>
-                  {isPlaying ? '⏸️ Playing...' : '🎬 Play Animation'}
-                </button>
+                isPlaying ? (
+                  <button onClick={stop3DAnimation} className="btn btn-secondary">
+                    ⏹️ Stop
+                  </button>
+                ) : (
+                  <button onClick={playAnimation} className="btn">
+                    🎬 Play Animation
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -752,7 +1228,10 @@ function CNNVisualizer() {
                   <h4 style={{ marginTop: 0 }}>📊 Computation Details (Step {currentStep + 1}/{steps3D.length})</h4>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', margin: '15px 0' }}>
                     <button
-                      onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                      onClick={() => {
+                        stop3DAnimation();
+                        setCurrentStep(Math.max(0, currentStep - 1));
+                      }}
                       disabled={currentStep === 0}
                       className="btn"
                     >
@@ -762,7 +1241,10 @@ function CNNVisualizer() {
                       Position: {steps3D[currentStep]?.position}
                     </span>
                     <button
-                      onClick={() => setCurrentStep(Math.min(steps3D.length - 1, currentStep + 1))}
+                      onClick={() => {
+                        stop3DAnimation();
+                        setCurrentStep(Math.min(steps3D.length - 1, currentStep + 1));
+                      }}
                       disabled={currentStep === steps3D.length - 1}
                       className="btn"
                     >

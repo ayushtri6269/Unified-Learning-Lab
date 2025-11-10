@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../components/Toast';
+import PerformanceChart from '../components/PerformanceChart';
+import { SkeletonStat, SkeletonTable, SkeletonCard } from '../components/Skeleton';
 import './Dashboard.css';
 
 function Dashboard({ user }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -13,23 +17,35 @@ function Dashboard({ user }) {
         .then(res => {
           setResults(res.data);
           setLoading(false);
+          if (res.data.length > 0) {
+            showSuccess('Results loaded successfully!');
+          }
         })
         .catch(err => {
           console.error(err);
+          showError('Failed to load results. Please try again.');
           setLoading(false);
         });
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, showSuccess, showError]);
 
   const quickLinks = [
+    { title: 'Aptitude Test', path: '/aptitude/Aptitude', icon: '🧮', color: '#f59e0b' },
+    { title: 'Coding Test', path: '/aptitude/Coding', icon: '💻', color: '#06b6d4' },
+    { title: 'DBMS Test', path: '/aptitude/DBMS', icon: '�️', color: '#8b5cf6' },
+    { title: 'OS Test', path: '/aptitude/OS', icon: '🖥️', color: '#10b981' },
+    { title: 'Networks Test', path: '/aptitude/Networks', icon: '🌐', color: '#3b82f6' },
+    { title: 'Quantitative Test', path: '/aptitude/Quantitative', icon: '📐', color: '#ec4899' },
+    { title: 'Verbal Test', path: '/aptitude/Verbal', icon: '📝', color: '#14b8a6' },
+    { title: 'Logical Test', path: '/aptitude/Logical', icon: '🧩', color: '#f97316' },
+    { title: 'GK Test', path: '/aptitude/GK', icon: '🌍', color: '#a855f7' },
+    { title: 'Miscellaneous Test', path: '/aptitude/Miscellaneous', icon: '🎲', color: '#ef4444' },
     { title: 'Binary Tree', path: '/binary-tree', icon: '🌳', color: '#10b981' },
     { title: 'Binary Search', path: '/binary-search', icon: '🔍', color: '#3b82f6' },
     { title: 'Stack & Queue', path: '/stack-queue', icon: '📚', color: '#8b5cf6' },
-    { title: 'CNN Visualizer', path: '/cnn', icon: '🧠', color: '#ec4899' },
-    { title: 'Aptitude Test', path: '/aptitude/Aptitude', icon: '🧮', color: '#f59e0b' },
-    { title: 'Coding Test', path: '/aptitude/Coding', icon: '💻', color: '#06b6d4' }
+    { title: 'CNN Visualizer', path: '/cnn', icon: '🧠', color: '#ec4899' }
   ];
 
   const getAverageScore = () => {
@@ -40,6 +56,19 @@ function Dashboard({ user }) {
   const getBestScore = () => {
     if (results.length === 0) return 0;
     return Math.max(...results.map(r => r.percentage));
+  };
+
+  const getTotalTestTime = () => {
+    // Assuming each test takes 30 minutes
+    return Math.floor((results.length * 30) / 60);
+  };
+
+  const getTestsByCategory = () => {
+    const categoryCount = {};
+    results.forEach(result => {
+      categoryCount[result.category] = (categoryCount[result.category] || 0) + 1;
+    });
+    return categoryCount;
   };
 
   const getRecentActivity = () => {
@@ -60,38 +89,56 @@ function Dashboard({ user }) {
 
       {/* Stats Grid */}
       <div className="stats-container">
-        <div className="stat-card primary" style={{'--stat-index': 0}}>
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <div className="stat-value">{results.length}</div>
-            <div className="stat-label">Tests Completed</div>
-          </div>
-        </div>
+        {loading ? (
+          <>
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+          </>
+        ) : (
+          <>
+            <div className="stat-card primary" style={{'--stat-index': 0}}>
+              <div className="stat-icon">📊</div>
+              <div className="stat-content">
+                <div className="stat-value">{results.length}</div>
+                <div className="stat-label">Tests Completed</div>
+              </div>
+            </div>
 
-        <div className="stat-card success" style={{'--stat-index': 1}}>
-          <div className="stat-icon">📈</div>
-          <div className="stat-content">
-            <div className="stat-value">{getAverageScore()}%</div>
-            <div className="stat-label">Average Score</div>
-          </div>
-        </div>
+            <div className="stat-card success" style={{'--stat-index': 1}}>
+              <div className="stat-icon">📈</div>
+              <div className="stat-content">
+                <div className="stat-value">{getAverageScore()}%</div>
+                <div className="stat-label">Average Score</div>
+              </div>
+            </div>
 
-        <div className="stat-card warning" style={{'--stat-index': 2}}>
-          <div className="stat-icon">🏆</div>
-          <div className="stat-content">
-            <div className="stat-value">{getBestScore()}%</div>
-            <div className="stat-label">Best Score</div>
-          </div>
-        </div>
+            <div className="stat-card warning" style={{'--stat-index': 2}}>
+              <div className="stat-icon">🏆</div>
+              <div className="stat-content">
+                <div className="stat-value">{getBestScore()}%</div>
+                <div className="stat-label">Best Score</div>
+              </div>
+            </div>
 
-        <div className="stat-card info" style={{'--stat-index': 3}}>
-          <div className="stat-icon">🎯</div>
-          <div className="stat-content">
-            <div className="stat-value">{results.length > 0 ? 'Active' : 'Start'}</div>
-            <div className="stat-label">Learning Status</div>
-          </div>
-        </div>
+            <div className="stat-card info" style={{'--stat-index': 3}}>
+              <div className="stat-icon">⏱️</div>
+              <div className="stat-content">
+                <div className="stat-value">{getTotalTestTime()}h</div>
+                <div className="stat-label">Total Study Time</div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Performance Chart */}
+      {!loading && results.length > 0 && (
+        <div className="chart-section">
+          <PerformanceChart results={results} />
+        </div>
+      )}
 
       {/* Quick Access */}
       <div className="quick-access-section">

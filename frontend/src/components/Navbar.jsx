@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
 import './Navbar.css';
 
-function Navbar({ user, onLogout, toggleSidebar }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+function Navbar({ user, onLogout, toggleSidebar, toggleAiChat }) {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
 
   const toggleUserDropdown = () => {
     setIsUserDropdownOpen(!isUserDropdownOpen);
@@ -22,8 +19,21 @@ function Navbar({ user, onLogout, toggleSidebar }) {
     onLogout();
   };
 
-  const handleChatbotClick = () => {
-    navigate('/chatbot');
+  const handleAiChatClick = () => {
+    if (toggleAiChat) {
+      toggleAiChat();
+    }
+  };
+
+  const handleShortcutIconClick = () => {
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: '/',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
   };
 
   const isActive = (path) => {
@@ -57,52 +67,42 @@ function Navbar({ user, onLogout, toggleSidebar }) {
         </Link>
       </div>
 
-      <button className="navbar-toggle" onClick={toggleMenu}>
-        ☰
-      </button>
-
-      <ul className={`navbar-nav ${isMenuOpen ? 'open' : ''}`}>
-        {user && (
-          <>
-            <li>
-              <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`} onClick={() => setIsMenuOpen(false)}>
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link to="/binary-tree" className={`nav-link ${isActive('/binary-tree')}`} onClick={() => setIsMenuOpen(false)}>
-                Binary Tree
-              </Link>
-            </li>
-            <li>
-              <Link to="/binary-search" className={`nav-link ${isActive('/binary-search')}`} onClick={() => setIsMenuOpen(false)}>
-                Binary Search
-              </Link>
-            </li>
-            <li>
-              <Link to="/stack-queue" className={`nav-link ${isActive('/stack-queue')}`} onClick={() => setIsMenuOpen(false)}>
-                Stack & Queue
-              </Link>
-            </li>
-            <li>
-              <Link to="/cnn" className={`nav-link ${isActive('/cnn')}`} onClick={() => setIsMenuOpen(false)}>
-                CNN Visualizer
-              </Link>
-            </li>
-          </>
-        )}
+      <ul className="navbar-nav">
+        {/* Navigation links removed - use sidebar instead */}
       </ul>
 
       <div className="navbar-right">
         {user ? (
           <>
-            <button
-              className="ai-assistant-btn"
-              onClick={handleChatbotClick}
-              title="AI Learning Assistant"
-            >
-              🤖
-            </button>
+            <div className="navbar-icon-group" aria-label="Quick actions">
+              <button
+                type="button"
+                className="navbar-icon-btn keyboard-shortcuts-btn"
+                title="Keyboard shortcuts (Shift + /)"
+                aria-label="Keyboard shortcuts"
+                onClick={handleShortcutIconClick}
+              >
+                ⌨️
+              </button>
+              <button
+                className="navbar-icon-btn ai-assistant-btn"
+                onClick={handleAiChatClick}
+                title="Toggle AI Assistant"
+                aria-label="Toggle AI assistant"
+                type="button"
+              >
+                🤖
+              </button>
+              <button
+                className="navbar-icon-btn theme-toggle-btn"
+                onClick={toggleTheme}
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                type="button"
+              >
+                {theme === 'light' ? '🌙' : '☀️'}
+              </button>
+            </div>
             <div className="user-menu" ref={dropdownRef}>
               <button className="user-info" onClick={toggleUserDropdown}>
                 <span className="user-icon">👤</span>

@@ -63,13 +63,14 @@ body {
   padding: 0; /* Remove padding for full screen */
   overflow-y: auto;
   background: #f8f9fa;
-  margin-left: 280px; /* Width of sidebar when open */
-  transition: margin-left 0.3s ease;
-  width: 100%;
+  margin-left: 0; /* No margin - sidebar overlays */
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  width: 100%; /* Always full width */
 }
 
 .content.full-width {
   margin-left: 0;
+  width: 100%;
 }
 
 /* Button Styles */
@@ -260,9 +261,28 @@ input:focus, select:focus, textarea:focus {
 .p-4 { padding: 2rem; }
 
 /* Responsive */
+@media (max-width: 992px) {
+  .content {
+    margin-left: 0; /* Sidebar overlays on all screens */
+    width: 100%;
+  }
+
+  .content.full-width {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   .content {
-    padding: 0; /* Full screen on mobile too */
+    padding: 0;
+    margin-left: 0; /* Sidebar overlays on mobile */
+    width: 100%;
+  }
+
+  .content.full-width {
+    margin-left: 0;
+    width: 100%;
   }
 
   .main-container {

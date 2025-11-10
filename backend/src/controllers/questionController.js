@@ -1,19 +1,38 @@
 const asyncHandler = require('../utils/asyncHandler');
-const Question = require('../../models/Question'); // Using old models location
+const {
+  getAllQuestions,
+  getQuestionsByCategory,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+  getQuestionModel
+} = require('../../models/QuestionByCategory');
 
 /**
- * @desc    Get all questions
+ * @desc    Get all questions or questions by category
  * @route   GET /api/questions
+ * @route   GET /api/questions/:category
  * @access  Public
  */
 exports.getQuestions = asyncHandler(async (req, res) => {
-    const { topic, difficulty } = req.query;
+    const { category, difficulty } = req.query;
+    const categoryParam = req.params.category; // From URL path
 
     let filter = {};
-    if (topic) filter.topic = topic;
     if (difficulty) filter.difficulty = difficulty;
 
-    const questions = await Question.find(filter);
+    let questions;
+
+    // Check if category is in URL path (e.g., /api/questions/Aptitude)
+    if (categoryParam) {
+        questions = await getQuestionsByCategory(categoryParam, filter);
+    } else if (category) {
+        // Check if category is in query string (e.g., /api/questions?category=Aptitude)
+        questions = await getQuestionsByCategory(category, filter);
+    } else {
+        // Get all questions from all collections
+        questions = await getAllQuestions(filter);
+    }
 
     res.json({
         success: true,
@@ -24,11 +43,21 @@ exports.getQuestions = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Get single question
- * @route   GET /api/questions/:id
+ * @route   GET /api/questions/:category/:id
  * @access  Public
  */
 exports.getQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.findById(req.params.id);
+    const { category, id } = req.params;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category is required',
+        });
+    }
+
+    const Model = getQuestionModel(category);
+    const question = await Model.findById(id);
 
     if (!question) {
         return res.status(404).json({
@@ -49,7 +78,7 @@ exports.getQuestion = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 exports.createQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.create(req.body);
+    const question = await createQuestion(req.body);
 
     res.status(201).json({
         success: true,
@@ -63,14 +92,16 @@ exports.createQuestion = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 exports.updateQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        {
-            new: true,
-            runValidators: true,
-        }
-    );
+    const { category } = req.body;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category is required',
+        });
+    }
+
+    const question = await updateQuestion(req.params.id, category, req.body);
 
     if (!question) {
         return res.status(404).json({
@@ -87,11 +118,20 @@ exports.updateQuestion = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Delete question
- * @route   DELETE /api/questions/:id
+ * @route   DELETE /api/questions/:id?category=CategoryName
  * @access  Private/Admin
  */
 exports.deleteQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.findByIdAndDelete(req.params.id);
+    const { category } = req.query;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category is required',
+        });
+    }
+
+    const question = await deleteQuestion(req.params.id, category);
 
     if (!question) {
         return res.status(404).json({

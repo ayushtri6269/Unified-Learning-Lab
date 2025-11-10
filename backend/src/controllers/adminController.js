@@ -2,6 +2,15 @@ const asyncHandler = require('../utils/asyncHandler');
 const User = require('../../models/User');
 const Question = require('../../models/Question');
 const Result = require('../../models/Result');
+const {
+    getAllQuestions,
+    getQuestionsByCategory,
+    createQuestion,
+    updateQuestion,
+    deleteQuestion,
+    getQuestionStats,
+    categories
+} = require('../../models/QuestionByCategory');
 
 /**
  * @desc    Get all users
@@ -125,7 +134,11 @@ exports.deleteUser = asyncHandler(async (req, res) => {
 exports.getStats = asyncHandler(async (req, res) => {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ isActive: true });
-    const totalQuestions = await Question.countDocuments();
+
+    // Get question counts from all category collections
+    const questionStats = await getQuestionStats();
+    const totalQuestions = Object.values(questionStats).reduce((sum, count) => sum + count, 0);
+
     const totalResults = await Result.countDocuments();
 
     // Get user registrations by month (last 6 months)
@@ -177,6 +190,18 @@ exports.getStats = asyncHandler(async (req, res) => {
                 totalQuestions,
                 totalResults
             },
+            questionsByCategory: questionStats,
+            collections: {
+                aptitude: 'aptitude_questions',
+                coding: 'coding_questions',
+                os: 'os_questions',
+                dbms: 'dbms_questions',
+                networks: 'networks_questions',
+                quantitative: 'quantitative_questions',
+                verbal: 'verbal_questions',
+                logical: 'logical_questions',
+                gk: 'gk_questions'
+            },
             usersByMonth,
             usersByRole,
             recentUsers
@@ -189,77 +214,113 @@ exports.getStats = asyncHandler(async (req, res) => {
  * @route   GET /api/admin/questions
  * @access  Private/Admin
  */
+/**
+ * @desc    Get all questions (from all category collections)
+ * @route   GET /api/admin/questions
+ * @access  Private/Admin
+ */
 exports.getAllQuestions = asyncHandler(async (req, res) => {
     const { category } = req.query;
-    const filter = category ? { category } : {};
 
-    const questions = await Question.find(filter).sort({ createdAt: -1 });
+    let questions;
+    if (category) {
+        // Get questions from specific category collection
+        questions = await getQuestionsByCategory(category);
+    } else {
+        // Get questions from all category collections
+        questions = await getAllQuestions();
+    }
 
     res.json({
         success: true,
-        data: questions
+        data: questions,
+        message: `Retrieved from ${category ? category.toLowerCase() + '_questions' : 'all category collections'}`
     });
 });
 
 /**
- * @desc    Create question
+ * @desc    Create question (in category-specific collection)
  * @route   POST /api/admin/questions
  * @access  Private/Admin
  */
 exports.createQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.create(req.body);
+    const { category } = req.body;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category is required'
+        });
+    }
+
+    // Create question in category-specific collection
+    const question = await createQuestion(req.body);
 
     res.status(201).json({
         success: true,
-        data: question
+        data: question,
+        message: `Question added to ${category.toLowerCase()}_questions collection`
     });
 });
 
 /**
- * @desc    Update question
+ * @desc    Update question (in category-specific collection)
  * @route   PUT /api/admin/questions/:id
  * @access  Private/Admin
  */
 exports.updateQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, runValidators: true }
-    );
+    const { category } = req.body;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category is required for update'
+        });
+    }
+
+    const question = await updateQuestion(req.params.id, category, req.body);
 
     if (!question) {
         return res.status(404).json({
             success: false,
-            message: 'Question not found'
+            message: 'Question not found in ' + category.toLowerCase() + '_questions collection'
         });
     }
 
     res.json({
         success: true,
-        data: question
+        data: question,
+        message: `Question updated in ${category.toLowerCase()}_questions collection`
     });
 });
 
 /**
- * @desc    Delete question
+ * @desc    Delete question (from category-specific collection)
  * @route   DELETE /api/admin/questions/:id
  * @access  Private/Admin
  */
 exports.deleteQuestion = asyncHandler(async (req, res) => {
-    const question = await Question.findById(req.params.id);
+    const { category } = req.query;
+
+    if (!category) {
+        return res.status(400).json({
+            success: false,
+            message: 'Category query parameter is required'
+        });
+    }
+
+    const question = await deleteQuestion(req.params.id, category);
 
     if (!question) {
         return res.status(404).json({
             success: false,
-            message: 'Question not found'
+            message: 'Question not found in ' + category.toLowerCase() + '_questions collection'
         });
     }
 
-    await question.deleteOne();
-
     res.json({
         success: true,
-        message: 'Question deleted successfully'
+        message: `Question deleted from ${category.toLowerCase()}_questions collection`
     });
 });
 

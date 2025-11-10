@@ -39,11 +39,20 @@ class ActionProvider {
         messages: prev.messages.slice(0, -1),
       }));
 
-      // Show error message
-      const errorMessage = this.createChatBotMessage(
-        `⚠️ ${error.message}`,
-        { widget: 'settingsPrompt' }
-      );
+      // Show user-friendly error message
+      let errorMsg = 'Sorry, I encountered an error. Please try again.';
+
+      if (error.message?.includes('login')) {
+        errorMsg = 'Please login to use the AI assistant. Click on your profile in the top-right corner to login.';
+      } else if (error.message?.includes('session') || error.message?.includes('expired')) {
+        errorMsg = 'Your session has expired. Please logout and login again to continue.';
+      } else if (error.message?.includes('backend') || error.message?.includes('server')) {
+        errorMsg = 'Cannot connect to server. Please make sure the backend is running on port 5001.';
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      const errorMessage = this.createChatBotMessage(errorMsg);
       this.setState((prev) => ({
         ...prev,
         messages: [...prev.messages, errorMessage],

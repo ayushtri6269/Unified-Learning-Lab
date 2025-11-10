@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../api/client';
 import './Admin.css';
 
 function Admin() {
@@ -17,25 +17,30 @@ function Admin() {
   const [isEditingQuestion, setIsEditingQuestion] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [bulkImportFile, setBulkImportFile] = useState(null);
+  const [pastedJSON, setPastedJSON] = useState('');
+  const [importMethod, setImportMethod] = useState('paste'); // 'paste' or 'file'
+  const [isImporting, setIsImporting] = useState(false);
 
-  const API_URL = 'http://localhost:5001/api/admin';
-  const token = localStorage.getItem('token');
+  const API_BASE = '/admin';
 
-  const axiosConfig = {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+  const getErrorMessage = (err, fallbackMessage) => {
+    if (!err) return fallbackMessage;
+    if (typeof err === 'string') return err;
+    if (err.message) return err.message;
+    if (err.error) return err.error;
+    if (err.response?.data?.message) return err.response.data.message;
+    return fallbackMessage;
   };
 
   // Fetch dashboard stats
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/stats`, axiosConfig);
-      setStats(response.data.data);
+  const response = await apiClient.get(`${API_BASE}/stats`);
+  setStats(response.data);
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch statistics');
+  setError(getErrorMessage(err, 'Failed to fetch statistics'));
     } finally {
       setLoading(false);
     }
@@ -45,13 +50,13 @@ function Admin() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/users`, axiosConfig);
-      console.log('Users response:', response.data);
-      setUsers(response.data.data);
+  const response = await apiClient.get(`${API_BASE}/users`);
+  console.log('Users response:', response);
+  setUsers(response.data);
       setError('');
     } catch (err) {
-      console.error('Error fetching users:', err);
-      setError(err.response?.data?.message || 'Failed to fetch users');
+  console.error('Error fetching users:', err);
+  setError(getErrorMessage(err, 'Failed to fetch users'));
     } finally {
       setLoading(false);
     }
@@ -61,11 +66,11 @@ function Admin() {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/questions`, axiosConfig);
-      setQuestions(response.data.data);
+  const response = await apiClient.get(`${API_BASE}/questions`);
+  setQuestions(response.data);
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch questions');
+  setError(getErrorMessage(err, 'Failed to fetch questions'));
     } finally {
       setLoading(false);
     }
@@ -75,11 +80,11 @@ function Admin() {
   const fetchResults = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/results`, axiosConfig);
-      setResults(response.data.data);
+  const response = await apiClient.get(`${API_BASE}/results`);
+  setResults(response.data);
       setError('');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch results');
+  setError(getErrorMessage(err, 'Failed to fetch results'));
     } finally {
       setLoading(false);
     }
@@ -88,12 +93,12 @@ function Admin() {
   // Update user
   const handleUpdateUser = async (userId, updates) => {
     try {
-      await axios.put(`${API_URL}/users/${userId}`, updates, axiosConfig);
+  await apiClient.put(`${API_BASE}/users/${userId}`, updates);
       alert('User updated successfully');
       fetchUsers();
       setShowUserModal(false);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update user');
+  alert(getErrorMessage(err, 'Failed to update user'));
     }
   };
 
@@ -102,75 +107,137 @@ function Admin() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      await axios.delete(`${API_URL}/users/${userId}`, axiosConfig);
+  await apiClient.delete(`${API_BASE}/users/${userId}`);
       alert('User deleted successfully');
       fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete user');
+  alert(getErrorMessage(err, 'Failed to delete user'));
     }
   };
 
   // Delete question
-  const handleDeleteQuestion = async (questionId) => {
+  // Delete question
+  const handleDeleteQuestion = async (questionId, category) => {
     if (!window.confirm('Are you sure you want to delete this question?')) return;
 
     try {
-      await axios.delete(`${API_URL}/questions/${questionId}`, axiosConfig);
-      alert('Question deleted successfully');
+  await apiClient.delete(`${API_BASE}/questions/${questionId}?category=${category}`);
+      alert(`Question deleted successfully from ${category.toLowerCase()}_questions collection`);
       fetchQuestions();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to delete question');
+      alert(getErrorMessage(err, 'Failed to delete question'));
     }
   };
 
   // Create question
   const handleCreateQuestion = async (questionData) => {
     try {
-      await axios.post(`${API_URL}/questions`, questionData, axiosConfig);
+  await apiClient.post(`${API_BASE}/questions`, questionData);
       alert('Question created successfully');
       fetchQuestions();
       setShowQuestionModal(false);
       setSelectedQuestion(null);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create question');
+      alert(getErrorMessage(err, 'Failed to create question'));
     }
   };
 
   // Update question
   const handleUpdateQuestion = async (questionId, questionData) => {
     try {
-      await axios.put(`${API_URL}/questions/${questionId}`, questionData, axiosConfig);
+  await apiClient.put(`${API_BASE}/questions/${questionId}`, questionData);
       alert('Question updated successfully');
       fetchQuestions();
       setShowQuestionModal(false);
       setSelectedQuestion(null);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update question');
+      alert(getErrorMessage(err, 'Failed to update question'));
     }
   };
 
   // Bulk import questions
   const handleBulkImport = async (questionsArray) => {
     try {
+      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
+        alert('No questions to import!');
+        return;
+      }
+
+      setIsImporting(true);
+      console.log('Starting import of', questionsArray.length, 'questions');
       let successCount = 0;
       let errorCount = 0;
+      const errors = [];
 
-      for (const question of questionsArray) {
+      for (let i = 0; i < questionsArray.length; i++) {
+        const question = questionsArray[i];
         try {
-          await axios.post(`${API_URL}/questions`, question, axiosConfig);
+          console.log(`Importing question ${i + 1}:`, question);
+          await apiClient.post(`${API_BASE}/questions`, question);
           successCount++;
         } catch (err) {
           errorCount++;
-          console.error('Error importing question:', err);
+          const errorMsg = getErrorMessage(err, err.message || 'Unknown error');
+          errors.push(`Question ${i + 1}: ${errorMsg}`);
+          console.error('Error importing question:', errorMsg, question);
         }
       }
 
-      alert(`Import completed!\nSuccessful: ${successCount}\nFailed: ${errorCount}`);
-      fetchQuestions();
+      setIsImporting(false);
+
+      if (errors.length > 0) {
+        console.log('Import errors:', errors);
+      }
+
+      alert(`Import completed!\n✅ Successful: ${successCount}\n❌ Failed: ${errorCount}${errorCount > 0 ? '\n\nCheck console for details (F12)' : ''}`);
+
+      if (successCount > 0) {
+        fetchQuestions();
+      }
+
       setShowBulkImportModal(false);
       setBulkImportFile(null);
+      setPastedJSON('');
     } catch (err) {
-      alert('Failed to import questions');
+      setIsImporting(false);
+      console.error('Bulk import error:', err);
+      alert('Failed to import questions: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  // Handle direct paste import
+  const handlePasteImport = () => {
+    if (!pastedJSON.trim()) {
+      alert('⚠️ Please paste JSON data first!');
+      return;
+    }
+
+    try {
+      console.log('Parsing pasted JSON...');
+      const questions = JSON.parse(pastedJSON);
+
+      if (!Array.isArray(questions)) {
+        alert('❌ Invalid JSON format. Expected an array of questions.\n\nExample:\n[{...}, {...}]');
+        return;
+      }
+
+      if (questions.length === 0) {
+        alert('⚠️ The JSON array is empty. Please add some questions.');
+        return;
+      }
+
+      // Validate first question structure
+      const firstQ = questions[0];
+      if (!firstQ.text || !firstQ.category || !firstQ.options || !firstQ.hasOwnProperty('correct')) {
+        alert('❌ Invalid question format!\n\nRequired fields:\n- text\n- category\n- difficulty\n- options (array of 4)\n- correct (0-3)');
+        return;
+      }
+
+      console.log('JSON valid, importing', questions.length, 'questions');
+      handleBulkImport(questions);
+    } catch (err) {
+      console.error('JSON parse error:', err);
+      alert('❌ Error parsing JSON:\n\n' + err.message + '\n\nTip: Check your JSON at https://jsonlint.com');
     }
   };
 
@@ -246,7 +313,6 @@ function Admin() {
 
   useEffect(() => {
     console.log('Active tab changed:', activeTab);
-    console.log('Current token:', token ? 'Token exists' : 'No token');
 
     if (activeTab === 'dashboard') {
       fetchStats();
@@ -308,6 +374,35 @@ function Admin() {
               ))}
             </div>
           </div>
+
+          {/* Questions by Category/Collection */}
+          {stats.questionsByCategory && (
+            <div className="questions-by-category">
+              <h3>📚 Questions by Collection</h3>
+              <div className="category-grid">
+                {Object.entries(stats.questionsByCategory).map(([category, count]) => (
+                  <div key={category} className="category-card">
+                    <div className="category-icon">
+                      {category === 'Aptitude' && '🧮'}
+                      {category === 'Coding' && '💻'}
+                      {category === 'DBMS' && '🗄️'}
+                      {category === 'OS' && '🖥️'}
+                      {category === 'Networks' && '🌐'}
+                      {category === 'Quantitative' && '📊'}
+                      {category === 'Verbal' && '📝'}
+                      {category === 'Logical' && '🧠'}
+                      {category === 'GK' && '🌍'}
+                    </div>
+                    <div className="category-info">
+                      <h4>{count}</h4>
+                      <p>{category}</p>
+                      <small>{category.toLowerCase()}_questions</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="recent-users">
             <h3>Recent Users</h3>
@@ -453,7 +548,7 @@ function Admin() {
                   </button>
                   <button
                     className="btn btn-delete"
-                    onClick={() => handleDeleteQuestion(question._id)}
+                    onClick={() => handleDeleteQuestion(question._id, question.category)}
                   >
                     🗑️ Delete
                   </button>
@@ -740,15 +835,104 @@ function Admin() {
 
     return (
       <div className="modal-overlay" onClick={() => setShowBulkImportModal(false)}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
           <h3>📤 Bulk Import Questions</h3>
 
           <div className="import-info">
-            <p>Upload a JSON or CSV file containing multiple questions.</p>
+            <p>Generate questions with AI, then paste or upload the JSON directly!</p>
 
-            <div className="format-section">
-              <h4>JSON Format:</h4>
-              <pre className="code-block">
+            {/* Import Method Toggle */}
+            <div className="import-method-toggle">
+              <button
+                className={`toggle-btn ${importMethod === 'paste' ? 'active' : ''}`}
+                onClick={() => setImportMethod('paste')}
+              >
+                📋 Paste JSON
+              </button>
+              <button
+                className={`toggle-btn ${importMethod === 'file' ? 'active' : ''}`}
+                onClick={() => setImportMethod('file')}
+              >
+                📁 Upload File
+              </button>
+            </div>
+
+            {importMethod === 'paste' ? (
+              // Paste JSON Method
+              <>
+                {/* AI Generation Section */}
+                <div className="format-section ai-section">
+                  <h4>🤖 Generate with AI (ChatGPT, Claude, Gemini)</h4>
+                  <p className="ai-description">
+                    Copy this prompt → Paste in AI → Copy AI's response → Paste below!
+                  </p>
+                  <div className="ai-prompt-box">
+                    <pre className="code-block ai-prompt">
+{`Generate 25 questions for [CATEGORY] in this exact JSON format:
+
+[
+  {
+    "text": "Question text here?",
+    "category": "Aptitude",
+    "difficulty": "easy",
+    "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+    "correct": 0
+  }
+]
+
+Categories: Aptitude, Coding, DBMS, OS, Networks, Quantitative, Verbal, Logical, GK
+Difficulty: easy, medium, hard
+Important: "correct" is the index (0-3) of the right answer`}
+                    </pre>
+                    <button
+                      className="btn btn-copy"
+                      onClick={() => {
+                        const prompt = `Generate 25 questions for [CATEGORY] in this exact JSON format:\n\n[\n  {\n    "text": "Question text here?",\n    "category": "Aptitude",\n    "difficulty": "easy",\n    "options": ["Option 1", "Option 2", "Option 3", "Option 4"],\n    "correct": 0\n  }\n]\n\nCategories: Aptitude, Coding, DBMS, OS, Networks, Quantitative, Verbal, Logical, GK\nDifficulty: easy, medium, hard\nImportant: "correct" is the index (0-3) of the right answer`;
+                        navigator.clipboard.writeText(prompt);
+                        alert('✅ AI prompt copied! Paste it into ChatGPT/Claude/Gemini');
+                      }}
+                    >
+                      📋 Copy AI Prompt
+                    </button>
+                  </div>
+                  <div className="ai-steps">
+                    <p><strong>Quick Steps:</strong></p>
+                    <ol>
+                      <li>Click "Copy AI Prompt" above</li>
+                      <li>Go to <a href="https://chat.openai.com" target="_blank" rel="noopener noreferrer">ChatGPT</a> / <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">Claude</a> / <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer">Gemini</a></li>
+                      <li>Paste the prompt and replace [CATEGORY] with your topic</li>
+                      <li>Copy the AI's JSON response</li>
+                      <li>Paste it in the box below</li>
+                    </ol>
+                  </div>
+                </div>
+
+                {/* Paste Area */}
+                <div className="paste-section">
+                  <label htmlFor="pasteArea"><strong>Paste AI's JSON Response Here:</strong></label>
+                  <textarea
+                    id="pasteArea"
+                    className="json-paste-area"
+                    placeholder='Paste JSON here... Example: [{"text": "Question?", "category": "Coding", "difficulty": "easy", "options": ["A","B","C","D"], "correct": 0}]'
+                    value={pastedJSON}
+                    onChange={(e) => setPastedJSON(e.target.value)}
+                    rows={10}
+                  />
+                  <button
+                    className="btn btn-import-paste"
+                    onClick={handlePasteImport}
+                    disabled={isImporting}
+                  >
+                    {isImporting ? '⏳ Importing...' : '🚀 Import Questions'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              // File Upload Method
+              <>
+                <div className="format-section">
+                  <h4>📄 JSON Format:</h4>
+                  <pre className="code-block">
 {`[
   {
     "text": "Question text here?",
@@ -758,35 +942,37 @@ function Admin() {
     "correct": 2
   }
 ]`}
-              </pre>
-              <button className="btn btn-download" onClick={downloadSampleJSON}>
-                💾 Download Sample JSON
-              </button>
-            </div>
+                  </pre>
+                  <button className="btn btn-download" onClick={downloadSampleJSON}>
+                    💾 Download Sample JSON
+                  </button>
+                </div>
 
-            <div className="format-section">
-              <h4>CSV Format:</h4>
-              <pre className="code-block">
+                <div className="format-section">
+                  <h4>📊 CSV Format:</h4>
+                  <pre className="code-block">
 {`text,category,difficulty,option1,option2,option3,option4,correct
 "Question?",Aptitude,easy,Opt1,Opt2,Opt3,Opt4,2`}
-              </pre>
-              <button className="btn btn-download" onClick={downloadSampleCSV}>
-                💾 Download Sample CSV
-              </button>
-            </div>
-          </div>
+                  </pre>
+                  <button className="btn btn-download" onClick={downloadSampleCSV}>
+                    💾 Download Sample CSV
+                  </button>
+                </div>
 
-          <div className="file-upload-section">
-            <label htmlFor="bulkUpload" className="file-upload-label">
-              📁 Choose File (JSON or CSV)
-            </label>
-            <input
-              id="bulkUpload"
-              type="file"
-              accept=".json,.csv"
-              onChange={handleFileUpload}
-              className="file-input"
-            />
+                <div className="file-upload-section">
+                  <label htmlFor="bulkUpload" className="file-upload-label">
+                    📁 Choose File (JSON or CSV)
+                  </label>
+                  <input
+                    id="bulkUpload"
+                    type="file"
+                    accept=".json,.csv"
+                    onChange={handleFileUpload}
+                    className="file-input"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="modal-buttons">
@@ -796,6 +982,8 @@ function Admin() {
               onClick={() => {
                 setShowBulkImportModal(false);
                 setBulkImportFile(null);
+                setPastedJSON('');
+                setImportMethod('paste');
               }}
             >
               Cancel

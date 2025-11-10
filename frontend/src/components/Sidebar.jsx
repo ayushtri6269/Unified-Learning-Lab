@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './Sidebar.css';
 
-function Sidebar({ user }) {
+function Sidebar({ user, className = '' }) {
   const location = useLocation();
 
   const isActive = (path) => {
@@ -10,9 +10,19 @@ function Sidebar({ user }) {
   };
 
   const isAdmin = user && user.role === 'admin';
+  const isCollapsed = className.includes('collapsed');
 
   return (
-    <aside className="sidebar">
+    <>
+      <div
+        className={`sidebar-overlay ${!isCollapsed ? 'active' : ''}`}
+        onClick={() => {
+          // Close sidebar on overlay click (mobile)
+          const sidebarToggle = document.querySelector('.sidebar-toggle');
+          if (sidebarToggle) sidebarToggle.click();
+        }}
+      />
+      <aside className={`sidebar ${className}`}>
       <div className="sidebar-header">
         <h3 className="sidebar-title">📚 Learning Modules</h3>
       </div>
@@ -177,7 +187,7 @@ function Sidebar({ user }) {
         </div>
 
         <div className="sidebar-section">
-          <h4 className="sidebar-section-title">Machine Learning</h4>
+          <h4 className="sidebar-section-title">Artificial Intelligence</h4>
           <ul className="sidebar-menu">
             <li className="sidebar-menu-item">
               <Link to="/cnn" className={`sidebar-link ${isActive('/cnn')}`}>
@@ -201,6 +211,7 @@ function Sidebar({ user }) {
         </div>
       </nav>
     </aside>
+    </>
   );
 }
 

@@ -143,6 +143,24 @@ Want to add 3 coding questions? Edit `coding-questions.json`:
 
 Upload this file and all 3 questions will be added instantly! 🚀
 
+## 🤖 Generate Questions with AI
+
+Want to create hundreds of questions quickly? Use AI tools like ChatGPT, Claude, or Gemini!
+
+📚 **See: [AI_QUESTION_GENERATION.md](../AI_QUESTION_GENERATION.md)** for:
+
+- Ready-to-use AI prompts for all categories
+- Step-by-step generation workflow
+- Quality validation tips
+- Bulk generation techniques
+
+**Quick AI Prompt:**
+
+```
+Generate 25 [CATEGORY] questions in JSON format.
+Structure: {"text": "...", "category": "...", "difficulty": "...", "options": [...], "correct": 0-3}
+```
+
 ## Need Help?
 
 If you get an error during import:
@@ -151,5 +169,11 @@ If you get an error during import:
 2. Verify the category name matches exactly
 3. Ensure `correct` is between 0-3
 4. Make sure difficulty is "easy", "medium", or "hard"
+
+## 📖 Additional Resources
+
+- **Manual Creation:** Use these templates as starting point
+- **AI Generation:** See [AI_QUESTION_GENERATION.md](../AI_QUESTION_GENERATION.md)
+- **Bulk Import:** Admin Panel → Questions → Bulk Import
 
 Happy Teaching! 📖✨

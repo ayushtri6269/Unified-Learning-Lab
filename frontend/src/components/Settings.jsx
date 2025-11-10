@@ -40,34 +40,43 @@ function Settings({ onClose }) {
               onChange={(e) => setProvider(e.target.value)}
               className="setting-input"
             >
+              <option value={AI_PROVIDERS.BACKEND}>Backend AI (Default - No API Key Required)</option>
               <option value={AI_PROVIDERS.OPENAI}>OpenAI (GPT-3.5/4)</option>
               <option value={AI_PROVIDERS.GEMINI}>Google Gemini</option>
               <option value={AI_PROVIDERS.ANTHROPIC}>Anthropic (Claude)</option>
               <option value={AI_PROVIDERS.HUGGINGFACE}>HuggingFace</option>
             </select>
+            <small className="help-text">
+              Backend AI is our built-in assistant - no setup required!
+            </small>
           </div>
 
           <div className="setting-group">
-            <label htmlFor="apiKey">API Key</label>
+            <label htmlFor="apiKey">API Key {provider !== AI_PROVIDERS.BACKEND && <span className="required">*</span>}</label>
             <div className="api-key-input-group">
               <input
                 id="apiKey"
                 type={showApiKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API key"
+                placeholder={provider === AI_PROVIDERS.BACKEND ? 'Not required for Backend AI' : 'Enter your API key'}
                 className="setting-input"
+                disabled={provider === AI_PROVIDERS.BACKEND}
               />
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
                 className="toggle-visibility-btn"
+                disabled={provider === AI_PROVIDERS.BACKEND}
               >
                 {showApiKey ? '👁️' : '👁️‍🗨️'}
               </button>
             </div>
             <small className="help-text">
-              Your API key is stored locally and never sent to our servers.
+              {provider === AI_PROVIDERS.BACKEND
+                ? 'Backend AI uses our server - no API key needed!'
+                : 'Your API key is stored locally and never sent to our servers.'
+              }
             </small>
           </div>
 

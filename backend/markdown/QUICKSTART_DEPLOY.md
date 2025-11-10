@@ -3,6 +3,7 @@
 ## ✅ Your App is 100% Ready for Deployment!
 
 ### What You Have:
+
 - ✅ Full-stack MERN application
 - ✅ MongoDB Atlas database (cloud-ready)
 - ✅ JWT authentication
@@ -98,24 +99,28 @@ After deployment, you'll have:
 
 ## 💡 Alternative Platforms
 
-| Platform | Best For | Cost |
-|----------|----------|------|
-| **Railway** | All-in-one deployment | $5/month free credit |
-| **Netlify** | Frontend alternative to Vercel | Free |
-| **Heroku** | Traditional PaaS | $5/month minimum |
+| Platform    | Best For                       | Cost                 |
+| ----------- | ------------------------------ | -------------------- |
+| **Railway** | All-in-one deployment          | $5/month free credit |
+| **Netlify** | Frontend alternative to Vercel | Free                 |
+| **Heroku**  | Traditional PaaS               | $5/month minimum     |
 
 ---
 
 ## 🆘 Quick Troubleshooting
 
 ### Problem: "Cannot connect to backend"
+
 **Solution:** Check REACT_APP_API_URL in Vercel environment variables
 
 ### Problem: "CORS error"
+
 **Solution:** Update CORS_ORIGIN in Render to match your frontend URL
 
 ### Problem: "Database connection failed"
-**Solution:** 
+
+**Solution:**
+
 - Check MongoDB Atlas IP whitelist
 - Add `0.0.0.0/0` to allow all IPs
 
@@ -124,6 +129,7 @@ After deployment, you'll have:
 ## 📚 Full Documentation
 
 For detailed guides, see:
+
 - **DEPLOYMENT_GUIDE.md** - Complete deployment guide
 - **README.md** - Project overview
 - **ARCHITECTURE.md** - System architecture

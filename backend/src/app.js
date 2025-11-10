@@ -12,16 +12,31 @@ const authRoutes = require('./routes/auth');
 const questionRoutes = require('./routes/questions');
 const resultRoutes = require('./routes/results');
 const adminRoutes = require('./routes/admin');
+const chatbotRoutes = require('./routes/chatbot');
 
 const app = express();
+
+// Ensure Express respects the real client IP when behind proxies/load balancers
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
 
 // CORS
+const allowedOrigins = (CORS_ORIGIN || '').split(',').map(origin => origin.trim());
+
+// CORS
 app.use(
     cors({
-        origin: CORS_ORIGIN,
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.indexOf(origin) === -1) {
+                const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+                return callback(new Error(msg), false);
+            }
+            return callback(null, true);
+        },
         credentials: true,
     })
 );
@@ -51,6 +66,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // 404 handler
 app.use((req, res) => {

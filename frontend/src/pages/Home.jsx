@@ -114,7 +114,7 @@ function Home() {
     }
   ];
 
-  const machineLearning = [
+  const artificialIntelligenceModules = [
     {
       title: 'CNN Visualizer',
       desc: 'Understand 2D convolution with custom matrices and filters',
@@ -245,14 +245,14 @@ function Home() {
         </div>
       </section>
 
-      {/* Machine Learning Section */}
+      {/* Artificial Intelligence Section */}
       <section className="section middle-section">
         <div className="section-header">
-          <h2 className="section-title">🧠 Machine Learning</h2>
+          <h2 className="section-title">🧠 Artificial Intelligence</h2>
           <p className="section-subtitle">Understand neural network concepts visually</p>
         </div>
         <div className="modules-grid">
-          {machineLearning.map((module, idx) => (
+          {artificialIntelligenceModules.map((module, idx) => (
             <Link to={module.path} key={idx} className="module-card featured" style={{'--card-color': module.color, '--card-index': idx}}>
               <div className="featured-badge">Popular</div>
               <div className="card-icon">{module.icon}</div>

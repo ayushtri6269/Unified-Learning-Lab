@@ -1,0 +1,37 @@
+[
+  {
+    "text": "What does HTML stand for?",
+    "category": "Miscellaneous",
+    "difficulty": "easy",
+    "options": ["Hyper Text Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlinks and Text Markup Language"],
+    "correct": 0
+  },
+  {
+    "text": "Which planet is known as the Red Planet?",
+    "category": "Miscellaneous",
+    "difficulty": "easy",
+    "options": ["Venus", "Mars", "Jupiter", "Saturn"],
+    "correct": 1
+  },
+  {
+    "text": "What is the speed of light in vacuum?",
+    "category": "Miscellaneous",
+    "difficulty": "medium",
+    "options": ["3 × 10^8 m/s", "3 × 10^6 m/s", "3 × 10^10 m/s", "3 × 10^5 m/s"],
+    "correct": 0
+  },
+  {
+    "text": "Who invented the telephone?",
+    "category": "Miscellaneous",
+    "difficulty": "easy",
+    "options": ["Thomas Edison", "Alexander Graham Bell", "Nikola Tesla", "Benjamin Franklin"],
+    "correct": 1
+  },
+  {
+    "text": "What is the chemical symbol for gold?",
+    "category": "Miscellaneous",
+    "difficulty": "easy",
+    "options": ["Go", "Gd", "Au", "Ag"],
+    "correct": 2
+  }
+]

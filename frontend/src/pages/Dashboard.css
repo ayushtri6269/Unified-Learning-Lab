@@ -184,13 +184,13 @@
 .stat-value {
   font-size: 36px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #718096;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -198,7 +198,7 @@
 .section-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1a202c;
+  color: var(--text-primary);
   margin-bottom: 24px;
   display: flex;
   align-items: center;
@@ -207,6 +207,16 @@
 
 .title-icon {
   font-size: 32px;
+}
+
+/* Chart Section */
+.chart-section {
+  margin: 0 40px 50px 40px;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: fadeInUp 0.6s ease-out both;
+  animation-delay: 0.3s;
 }
 
 /* Quick Access */
@@ -224,12 +234,13 @@
 }
 
 .quick-link-card {
-  background: white;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 16px;
   padding: 28px 24px;
   text-decoration: none;
-  color: inherit;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;

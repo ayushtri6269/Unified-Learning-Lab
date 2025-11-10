@@ -1,0 +1,23 @@
+[
+  {
+    "text": "What is 2 + 2?",
+    "category": "Aptitude",
+    "difficulty": "easy",
+    "options": ["2", "3", "4", "5"],
+    "correct": 2
+  },
+  {
+    "text": "What is the capital of France?",
+    "category": "GK",
+    "difficulty": "easy",
+    "options": ["London", "Berlin", "Paris", "Madrid"],
+    "correct": 2
+  },
+  {
+    "text": "Which programming language is known for 'Write Once, Run Anywhere'?",
+    "category": "Coding",
+    "difficulty": "medium",
+    "options": ["Python", "Java", "C++", "JavaScript"],
+    "correct": 1
+  }
+]

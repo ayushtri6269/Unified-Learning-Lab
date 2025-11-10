@@ -212,7 +212,35 @@ cd frontend
 npm test
 ```
 
-## 📝 Code Style
+## � Documentation
+
+- **[TESTING_GUIDE.md](./frontend/markdown/TESTING_GUIDE.md)** - Complete testing guide
+- **[DEPLOYMENT_GUIDE.md](./backend/markdown/DEPLOYMENT_GUIDE.md)** - Full deployment documentation
+- **[QUICKSTART_DEPLOY.md](./backend/markdown/QUICKSTART_DEPLOY.md)** - 10-minute deployment guide
+- **[AI_QUESTION_GENERATION.md](./frontend/markdown/AI_QUESTION_GENERATION.md)** - 🤖 Generate questions with AI
+- **[ARCHITECTURE.md](./backend/markdown/ARCHITECTURE.md)** - System architecture
+- **[AUTHENTICATION_GUIDE.md](./backend/markdown/AUTHENTICATION_GUIDE.md)** - Auth implementation
+
+### 🤖 AI-Powered Question Generation
+
+Generate hundreds of questions automatically using ChatGPT, Claude, or Gemini!
+
+**Quick Start:**
+
+1. Read [AI_QUESTION_GENERATION.md](./frontend/markdown/AI_QUESTION_GENERATION.md)
+2. Copy ready-to-use AI prompts
+3. Generate questions in seconds
+4. Import via Admin Panel
+
+**Example AI Prompt:**
+
+```
+Generate 25 Coding questions in JSON format with:
+{"text": "...", "category": "Coding", "difficulty": "easy",
+ "options": [...], "correct": 0-3}
+```
+
+## �📝 Code Style
 
 This project uses:
 

@@ -10,7 +10,8 @@ const SettingsPrompt = ({ actionProvider }) => {
       border: '1px solid #dee2e6'
     }}>
       <p style={{ margin: '0 0 10px 0', color: '#495057' }}>
-        To enable AI-powered responses, please configure your API key in settings.
+        <strong>💡 Tip:</strong> Use <strong>Backend AI (Default)</strong> for instant AI assistance without any API keys!
+        Or configure an external AI provider (OpenAI, Gemini, etc.) in settings.
       </p>
       <button
         onClick={() => {
@@ -27,7 +28,7 @@ const SettingsPrompt = ({ actionProvider }) => {
           fontSize: '14px'
         }}
       >
-        Open Settings
+        ⚙️ Open Settings
       </button>
     </div>
   );
