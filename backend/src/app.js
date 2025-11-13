@@ -56,6 +56,23 @@ if (NODE_ENV === 'development') {
 // Apply rate limiting to all API routes
 app.use('/api', apiLimiter);
 
+// Root route
+app.get('/', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'Unified Learning Lab API',
+        version: '1.0.0',
+        endpoints: {
+            health: '/health',
+            auth: '/api/auth',
+            questions: '/api/questions',
+            results: '/api/results',
+            admin: '/api/admin',
+            chatbot: '/api/chatbot'
+        }
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
