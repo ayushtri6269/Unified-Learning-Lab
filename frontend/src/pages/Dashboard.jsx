@@ -19,9 +19,10 @@ function Dashboard({ user }) {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => {
-          setResults(res.data);
+          const resultsData = res.data?.data || res.data || [];
+          setResults(resultsData);
           setLoading(false);
-          if (res.data.length > 0) {
+          if (resultsData.length > 0) {
             showSuccess('Results loaded successfully!');
           }
         })
